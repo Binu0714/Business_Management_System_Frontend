@@ -10,6 +10,9 @@ const Dashboard = lazy(() => import("../pages/Dashboard"));
 const InventoryManage = lazy(() => import("../pages/InventoryManage"));
 const RepsManage = lazy(() => import("../pages/RepsManage"));
 const SupplierManage = lazy(() => import("../pages/SupplierManage"));
+const PurchaseManage = lazy(() => import("../pages/PurchaseManage"));
+const ExpenseManage = lazy(() => import("../pages/ExpenseManage"));
+const SalesManage = lazy(() => import("../pages/SalesManage"));
 
 const Placeholder = ({ name }: { name: string }) => (
   <div className="bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 min-h-[400px] flex items-center justify-center">
@@ -33,9 +36,12 @@ export default function AppRouter() {
           <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/suppliers" element={<SupplierManage />} />
+            <Route path="/purchases" element={<PurchaseManage />} />
             <Route path="/inventory" element={<InventoryManage />} />
+            <Route path="/sales" element={<SalesManage />} />
             <Route path="/sales-reps" element={<RepsManage />} />
             <Route path="/reports" element={<Placeholder name="Reports" />} />
+            <Route path="/expenses" element={<ExpenseManage />} />
           </Route>
 
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -41,3 +41,15 @@ input {
 .animate-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* Custom Scrollbar for the main content */
+main::-webkit-scrollbar {
+  width: 8px;
+}
+main::-webkit-scrollbar-track {
+  background: #f8faff;
+}
+main::-webkit-scrollbar-thumb {
+  background-color: #ff5722;
+  border-radius: 20px;
+}
