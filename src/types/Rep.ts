@@ -1,6 +1,6 @@
 export interface SalesRep {
-  id?: string;        // Firebase Document ID
-  repId: string;      // The "SR001" ID
+  id?: string;        
+  repId: string;     
   name: string;
   address: string;
   contactNo: string;

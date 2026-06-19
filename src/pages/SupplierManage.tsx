@@ -96,11 +96,11 @@ const SupplierManage = () => {
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Address</label>
-              <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+              <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} required/>
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Contact Number</label>
-              <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Contact No" value={formData.contactNo} onChange={e => setFormData({...formData, contactNo: e.target.value})} />
+              <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Contact No" value={formData.contactNo} onChange={e => setFormData({...formData, contactNo: e.target.value})} required />
             </div>
           </div>
           
