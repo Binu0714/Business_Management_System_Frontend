@@ -2,17 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Edit2, Save, Building2, Hash } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { CustomAlert } from '../components/CustomAlert';
 
 const SupplierManage = () => {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [formData, setFormData] = useState({ supplierId: '', name: '', address: '', contactNo: '' });
   const [editId, setEditId] = useState<string | null>(null);
+  
+  // Custom Alert State
+  const [alert, setAlert] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'confirm'; id?: string }>({
+    show: false, msg: '', type: 'success'
+  });
 
   const fetchSuppliers = async () => {
-    const snapshot = await getDocs(collection(db, 'suppliers'));
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => a.supplierId.localeCompare(b.supplierId));
-    setSuppliers(data);
+    try {
+      const snapshot = await getDocs(collection(db, 'suppliers'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => a.supplierId?.localeCompare(b.supplierId));
+      setSuppliers(data);
+    } catch (err) {
+      setAlert({ show: true, msg: "Failed to fetch suppliers", type: 'error' });
+    }
   };
 
   useEffect(() => { fetchSuppliers(); }, []);
@@ -24,19 +34,51 @@ const SupplierManage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editId) {
-      await updateDoc(doc(db, 'suppliers', editId), formData);
-    } else {
-      const newId = generateNextId();
-      await addDoc(collection(db, 'suppliers'), { ...formData, supplierId: newId });
+    try {
+      if (editId) {
+        await updateDoc(doc(db, 'suppliers', editId), formData);
+        setAlert({ show: true, msg: "Supplier updated successfully!", type: 'success' });
+      } else {
+        const newId = generateNextId();
+        await addDoc(collection(db, 'suppliers'), { ...formData, supplierId: newId });
+        setAlert({ show: true, msg: "New supplier registered!", type: 'success' });
+      }
+      setFormData({ supplierId: '', name: '', address: '', contactNo: '' });
+      setEditId(null);
+      fetchSuppliers();
+    } catch (err) {
+      setAlert({ show: true, msg: "Action failed. Please try again.", type: 'error' });
     }
-    setFormData({ supplierId: '', name: '', address: '', contactNo: '' });
-    setEditId(null);
-    fetchSuppliers();
+  };
+
+  // 1. Trigger the confirm dialog
+  const initiateDelete = (id: string) => {
+    setAlert({ show: true, msg: "Are you sure you want to delete this supplier?", type: 'confirm', id });
+  };
+
+  // 2. Perform the actual delete
+  const confirmDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'suppliers', id));
+      setAlert({ show: true, msg: "Supplier deleted successfully!", type: 'success' });
+      fetchSuppliers();
+    } catch {
+      setAlert({ show: true, msg: "Delete failed", type: 'error' });
+    }
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+      
+      {/* Alert System */}
+      {alert.show && (
+        <CustomAlert 
+          type={alert.type} 
+          message={alert.msg} 
+          onClose={() => setAlert({...alert, show: false})} 
+          onConfirm={alert.type === 'confirm' && alert.id ? () => confirmDelete(alert.id!) : undefined}
+        />
+      )}
       
       <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
         <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
@@ -45,7 +87,6 @@ const SupplierManage = () => {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ID Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Supplier ID</label>
               <div className="relative">
@@ -53,17 +94,14 @@ const SupplierManage = () => {
                 <input className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Auto-generated" value={editId ? formData.supplierId : 'Auto-generated'} disabled />
               </div>
             </div>
-            {/* Name Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Supplier Name</label>
               <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Supplier Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
             </div>
-            {/* Address Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Address</label>
               <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
             </div>
-            {/* Contact Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Contact Number</label>
               <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Contact No" value={formData.contactNo} onChange={e => setFormData({...formData, contactNo: e.target.value})} />
@@ -101,7 +139,7 @@ const SupplierManage = () => {
                 <td className="p-6 text-sm text-slate-600">{s.contactNo}</td>
                 <td className="p-6 flex justify-end gap-2">
                   <button onClick={() => { setEditId(s.id); setFormData(s); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2 text-orange-500 hover:bg-orange-100 rounded-lg"><Edit2 size={16} /></button>
-                  <button onClick={() => deleteDoc(doc(db, 'suppliers', s.id)).then(fetchSuppliers)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
+                  <button onClick={() => initiateDelete(s.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
                 </td>
               </tr>
             ))}
