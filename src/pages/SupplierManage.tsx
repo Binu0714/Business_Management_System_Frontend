@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Edit2, Save, Building2, Hash } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { db } from '../lib/Firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { CustomAlert } from '../components/CustomAlert';
+import type { Supplier } from '../types/Supplier'; // Correct Import
 
 const SupplierManage = () => {
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [formData, setFormData] = useState({ supplierId: '', name: '', address: '', contactNo: '' });
-  const [editId, setEditId] = useState<string | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   
-  // Custom Alert State
+  const [formData, setFormData] = useState<Omit<Supplier, 'id' | 'supplierId'>>({ 
+    name: '', 
+    address: '', 
+    contactNo: '' 
+  });
+  
+  const [editId, setEditId] = useState<string | null>(null);
   const [alert, setAlert] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'confirm'; id?: string }>({
     show: false, msg: '', type: 'success'
   });
@@ -17,9 +22,8 @@ const SupplierManage = () => {
   const fetchSuppliers = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'suppliers'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        .sort((a, b) => a.supplierId?.localeCompare(b.supplierId));
-      setSuppliers(data);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Supplier[];
+      setSuppliers(data.sort((a, b) => a.supplierId.localeCompare(b.supplierId)));
     } catch (err) {
       setAlert({ show: true, msg: "Failed to fetch suppliers", type: 'error' });
     }
@@ -43,7 +47,7 @@ const SupplierManage = () => {
         await addDoc(collection(db, 'suppliers'), { ...formData, supplierId: newId });
         setAlert({ show: true, msg: "New supplier registered!", type: 'success' });
       }
-      setFormData({ supplierId: '', name: '', address: '', contactNo: '' });
+      setFormData({ name: '', address: '', contactNo: '' });
       setEditId(null);
       fetchSuppliers();
     } catch (err) {
@@ -51,12 +55,6 @@ const SupplierManage = () => {
     }
   };
 
-  // 1. Trigger the confirm dialog
-  const initiateDelete = (id: string) => {
-    setAlert({ show: true, msg: "Are you sure you want to delete this supplier?", type: 'confirm', id });
-  };
-
-  // 2. Perform the actual delete
   const confirmDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'suppliers', id));
@@ -69,13 +67,11 @@ const SupplierManage = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-      
-      {/* Alert System */}
       {alert.show && (
         <CustomAlert 
           type={alert.type} 
           message={alert.msg} 
-          onClose={() => setAlert({...alert, show: false})} 
+          onClose={() => setAlert({...alert, show: false})}
           onConfirm={alert.type === 'confirm' && alert.id ? () => confirmDelete(alert.id!) : undefined}
         />
       )}
@@ -91,7 +87,7 @@ const SupplierManage = () => {
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Supplier ID</label>
               <div className="relative">
                 <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Auto-generated" value={editId ? formData.supplierId : 'Auto-generated'} disabled />
+                <input className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Auto-generated" value={editId ? (suppliers.find(s=>s.id === editId)?.supplierId || '') : 'Auto-generated'} disabled />
               </div>
             </div>
             <div>
@@ -110,7 +106,7 @@ const SupplierManage = () => {
           
           <div className="flex justify-end gap-3 pt-2">
             {editId && (
-              <button type="button" onClick={() => { setEditId(null); setFormData({supplierId: '', name: '', address: '', contactNo: ''})}} className="px-6 py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm">Cancel</button>
+              <button type="button" onClick={() => { setEditId(null); setFormData({name: '', address: '', contactNo: ''})}} className="px-6 py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm">Cancel</button>
             )}
             <button type="submit" className="px-8 py-3 bg-[#ff5722] text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-orange-600 shadow-lg shadow-orange-100">
               <Save size={16} /> {editId ? 'Update' : 'Save Supplier'}
@@ -131,15 +127,15 @@ const SupplierManage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {suppliers.map(s => (
+            {suppliers.map((s: Supplier) => (
               <tr key={s.id} className="hover:bg-orange-50/30 transition-colors">
                 <td className="p-6 font-bold text-[#ff5722]">{s.supplierId}</td>
                 <td className="p-6 font-bold text-slate-800">{s.name}</td>
                 <td className="p-6 text-sm text-slate-600">{s.address}</td>
                 <td className="p-6 text-sm text-slate-600">{s.contactNo}</td>
                 <td className="p-6 flex justify-end gap-2">
-                  <button onClick={() => { setEditId(s.id); setFormData(s); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2 text-orange-500 hover:bg-orange-100 rounded-lg"><Edit2 size={16} /></button>
-                  <button onClick={() => initiateDelete(s.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
+                  <button onClick={() => { setEditId(s.id!); setFormData(s); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2 text-orange-500 hover:bg-orange-100 rounded-lg"><Edit2 size={16} /></button>
+                  <button onClick={() => setAlert({ show: true, msg: "Are you sure you want to delete this Supplier?", type: 'confirm', id: s.id })} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
                 </td>
               </tr>
             ))}

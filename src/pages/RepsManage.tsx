@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Edit2, Save, Users, Hash } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { db } from '../lib/Firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { CustomAlert } from '../components/CustomAlert';
+import type { SalesRep } from '../types/Rep';
 
 const RepsManage = () => {
-  const [reps, setReps] = useState<any[]>([]);
+  const [reps, setReps] = useState<SalesRep[]>([]);
   const [formData, setFormData] = useState({ repId: '', name: '', address: '', contactNo: '' });
   const [editId, setEditId] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'confirm'; id?: string }>({
+    show: false, msg: '', type: 'success'
+  });
 
   const fetchReps = async () => {
-    const snapshot = await getDocs(collection(db, 'salesReps'));
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => a.repId.localeCompare(b.repId));
-    setReps(data);
+    try {
+      const snapshot = await getDocs(collection(db, 'salesReps'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SalesRep[];
+      setReps(data.sort((a, b) => a.repId.localeCompare(b.repId)));
+    } catch (err) {
+      setAlert({ show: true, msg: "Failed to fetch Sales Reps", type: 'error' });
+    }
   };
 
   useEffect(() => { fetchReps(); }, []);
@@ -24,21 +32,44 @@ const RepsManage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editId) {
-      await updateDoc(doc(db, 'salesReps', editId), formData);
-    } else {
-      const newId = generateNextId();
-      await addDoc(collection(db, 'salesReps'), { ...formData, repId: newId });
+    try {
+      if (editId) {
+        await updateDoc(doc(db, 'salesReps', editId), formData);
+        setAlert({ show: true, msg: "Rep updated successfully!", type: 'success' });
+      } else {
+        const newId = generateNextId();
+        await addDoc(collection(db, 'salesReps'), { ...formData, repId: newId });
+        setAlert({ show: true, msg: "New Rep registered!", type: 'success' });
+      }
+      setFormData({ repId: '', name: '', address: '', contactNo: '' });
+      setEditId(null);
+      fetchReps();
+    } catch (err) {
+      setAlert({ show: true, msg: "Action failed. Please try again.", type: 'error' });
     }
-    setFormData({ repId: '', name: '', address: '', contactNo: '' });
-    setEditId(null);
-    fetchReps();
+  };
+
+  const confirmDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'salesReps', id));
+      setAlert({ show: true, msg: "Sales Rep deleted!", type: 'success' });
+      fetchReps();
+    } catch {
+      setAlert({ show: true, msg: "Delete failed", type: 'error' });
+    }
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {alert.show && (
+        <CustomAlert 
+          type={alert.type} 
+          message={alert.msg} 
+          onClose={() => setAlert({...alert, show: false})}
+          onConfirm={alert.type === 'confirm' && alert.id ? () => confirmDelete(alert.id!) : undefined}
+        />
+      )}
       
-      {/* 1. TOP SECTION: FORM */}
       <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
         <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
           <Users className="text-[#ff5722]" /> {editId ? 'Edit Sales Rep' : 'Register New Sales Rep'}
@@ -46,29 +77,21 @@ const RepsManage = () => {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* ID Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Rep ID</label>
               <div className="relative">
                 <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-sm" placeholder="ID (Auto-generated)" value={editId ? formData.repId : 'Auto-generated'} disabled />
+                <input className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Auto-generated" value={editId ? formData.repId : 'Auto-generated'} disabled />
               </div>
             </div>
-
-            {/* Name Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Rep Name</label>
-              <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Rep Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+              <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
             </div>
-
-            {/* Address Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Address</label>
               <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
             </div>
-
-            {/* Contact Field */}
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Contact Number</label>
               <input className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" placeholder="Contact No" value={formData.contactNo} onChange={e => setFormData({...formData, contactNo: e.target.value})} />
@@ -86,7 +109,6 @@ const RepsManage = () => {
         </form>
       </div>
 
-      {/* 2. BOTTOM SECTION: TABLE */}
       <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -107,7 +129,7 @@ const RepsManage = () => {
                 <td className="p-6 text-sm text-slate-600">{s.contactNo}</td>
                 <td className="p-6 flex justify-end gap-2">
                   <button onClick={() => { setEditId(s.id); setFormData(s); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2 text-orange-500 hover:bg-orange-100 rounded-lg"><Edit2 size={16} /></button>
-                  <button onClick={() => deleteDoc(doc(db, 'salesReps', s.id)).then(fetchReps)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
+                  <button onClick={() => setAlert({ show: true, msg: "Are you sure you want to delete this Sales Rep?", type: 'confirm', id: s.id })} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
                 </td>
               </tr>
             ))}
