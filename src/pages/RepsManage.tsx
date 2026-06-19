@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Edit2, Save, Users, Hash } from 'lucide-react';
-import { db } from '../lib/Firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import api from '../services/api'; 
 import { CustomAlert } from '../components/CustomAlert';
 import type { SalesRep } from '../types/Rep';
 
@@ -15,9 +14,9 @@ const RepsManage = () => {
 
   const fetchReps = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'salesReps'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SalesRep[];
-      setReps(data.sort((a, b) => a.repId.localeCompare(b.repId)));
+      // BACKEND CALL
+      const res = await api.get('/reps');
+      setReps(res.data.sort((a: SalesRep, b: SalesRep) => a.repId.localeCompare(b.repId)));
     } catch (err) {
       setAlert({ show: true, msg: "Failed to fetch Sales Reps", type: 'error' });
     }
@@ -25,33 +24,30 @@ const RepsManage = () => {
 
   useEffect(() => { fetchReps(); }, []);
 
-  const generateNextId = () => {
-    const nextNumber = reps.length + 1;
-    return `SR${nextNumber.toString().padStart(3, '0')}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (editId) {
-        await updateDoc(doc(db, 'salesReps', editId), formData);
+        // BACKEND UPDATE CALL
+        await api.put(`/reps/${editId}`, formData);
         setAlert({ show: true, msg: "Rep updated successfully!", type: 'success' });
       } else {
-        const newId = generateNextId();
-        await addDoc(collection(db, 'salesReps'), { ...formData, repId: newId });
+        // BACKEND CREATE CALL
+        await api.post('/reps', formData);
         setAlert({ show: true, msg: "New Rep registered!", type: 'success' });
       }
       setFormData({ repId: '', name: '', address: '', contactNo: '' });
       setEditId(null);
       fetchReps();
-    } catch (err) {
-      setAlert({ show: true, msg: "Action failed. Please try again.", type: 'error' });
+    } catch (err: any) {
+      setAlert({ show: true, msg: err.response?.data?.message || "Action failed", type: 'error' });
     }
   };
 
   const confirmDelete = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'salesReps', id));
+      // BACKEND DELETE CALL
+      await api.delete(`/reps/${id}`);
       setAlert({ show: true, msg: "Sales Rep deleted!", type: 'success' });
       fetchReps();
     } catch {
