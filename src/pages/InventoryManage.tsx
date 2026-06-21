@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Minus, Edit2, X, AlertTriangle } from 'lucide-react';
+import { Package, Edit2, X, AlertTriangle, Check } from 'lucide-react'; // Added Check
 import api from '../services/api';
 import { CustomAlert } from '../components/CustomAlert';
 import type { InventoryItem } from '../types/InventoryItem';
@@ -8,6 +8,7 @@ const InventoryManage = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]); 
   const [activeAdjustId, setActiveAdjustId] = useState<string | null>(null);
   const [adjustmentValue, setAdjustmentValue] = useState<number>(0);
+  const [adjustMode, setAdjustMode] = useState<'add' | 'subtract'>('add'); // Track mode
   
   const [alert, setAlert] = useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({
     show: false, msg: '', type: 'success'
@@ -26,9 +27,11 @@ const InventoryManage = () => {
     fetchInventory();
   }, []);
 
-  const handleAdjustStock = async (id: string, isAdd: boolean) => {
+  const handleAdjustStock = async (id: string) => {
     if (adjustmentValue <= 0) return;
-    const adjustmentQty = isAdd ? adjustmentValue : -adjustmentValue;
+    
+    // Calculate final delta based on Add vs Subtract selection
+    const adjustmentQty = adjustMode === 'add' ? adjustmentValue : -adjustmentValue;
 
     try {
       await api.put(`/inventory/adjust/${id}`, { adjustmentQty });
@@ -46,14 +49,8 @@ const InventoryManage = () => {
     
     const today = new Date();
     const expiryDate = new Date(expiryDateString);
-    
-    // Calculate difference in milliseconds
     const differenceInTime = expiryDate.getTime() - today.getTime();
-    
-    // Convert to days
     const differenceInDays = differenceInTime / (1000 * 3600 * 24);
-    
-    // Returns true if expiring within 60 days
     return differenceInDays <= 60;
   };
 
@@ -91,14 +88,11 @@ const InventoryManage = () => {
               const name = item.productName || (item as any).itemName || '—';
               const currentStock = item.stockQty !== undefined ? item.stockQty : (item as any).qty || 0;
               const originalQty = item.originalQty !== undefined ? item.originalQty : currentStock;
-              
-              // Check if expiring within 2 months
               const expiringSoon = isExpiringSoon(item.expDate);
 
               return (
                 <tr 
                   key={item.id} 
-                  // FIX: If expiring soon, apply a soft red background with warning state
                   className={`transition-colors ${
                     expiringSoon 
                       ? 'bg-red-50/70 hover:bg-red-50 text-red-900' 
@@ -122,28 +116,36 @@ const InventoryManage = () => {
                   <td className="p-6">
                     {isAdjusting ? (
                       <div className="flex items-center gap-2 animate-in fade-in duration-300">
+                        
+                        {/* Selector: Add vs Subtract */}
+                        <select 
+                          value={adjustMode} 
+                          onChange={e => setAdjustMode(e.target.value as 'add' | 'subtract')}
+                          className="p-2 bg-gray-50 border-none rounded-xl text-xs font-bold text-slate-700"
+                        >
+                          <option value="add">Add (+)</option>
+                          <option value="subtract">Sub (-)</option>
+                        </select>
+
                         <input 
                           type="number" 
                           placeholder="Qty"
-                          className="w-20 p-2 bg-gray-50 border-none rounded-xl text-xs text-center font-bold"
+                          className="w-16 p-2 bg-gray-50 border-none rounded-xl text-xs text-center font-bold"
                           onChange={e => setAdjustmentValue(parseInt(e.target.value) || 0)}
                           required
                         />
+
+                        {/* Professional TICK Icon to Confirm */}
                         <button 
-                          onClick={() => handleAdjustStock(item.id, true)} 
-                          className="p-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg"
+                          onClick={() => handleAdjustStock(item.id)} 
+                          className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-all"
                         >
-                          <Plus size={14} />
+                          <Check size={14} />
                         </button>
-                        <button 
-                          onClick={() => handleAdjustStock(item.id, false)} 
-                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg"
-                        >
-                          <Minus size={14} />
-                        </button>
+
                         <button 
                           onClick={() => setActiveAdjustId(null)} 
-                          className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg"
+                          className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg transition-all"
                         >
                           <X size={14} />
                         </button>
@@ -151,7 +153,7 @@ const InventoryManage = () => {
                     ) : (
                       <div className="flex items-center gap-4">
                         <span className={`px-4 py-2 rounded-full text-xs font-bold ${
-                          expiringSoon || currentStock <= 10 
+                          currentStock <= 10 
                             ? 'bg-red-100 text-red-700' 
                             : 'bg-green-50 text-green-600'
                         }`}>
@@ -159,7 +161,7 @@ const InventoryManage = () => {
                         </span>
                         
                         <button 
-                          onClick={() => { setActiveAdjustId(item.id); setAdjustmentValue(0); }}
+                          onClick={() => { setActiveAdjustId(item.id); setAdjustmentValue(0); setAdjustMode('add'); }}
                           className={`p-2 rounded-lg transition-colors ${
                             expiringSoon 
                               ? 'text-red-500 hover:bg-red-100' 

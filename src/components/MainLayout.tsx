@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { Search, UserCircle, Plus, ChevronDown } from 'lucide-react';
+import { Search, UserCircle } from 'lucide-react';
 
 const MainLayout = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -58,7 +58,6 @@ const MainLayout = () => {
               <div className="w-10 h-10 bg-orange-100 rounded-2xl flex items-center justify-center text-[#ff5722] border-2 border-orange-200 group-hover:border-[#ff5722] transition-colors">
                 <UserCircle size={28} />
               </div>
-              <ChevronDown size={16} className="text-gray-400" />
             </div>
           </div>
         </header>
