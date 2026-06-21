@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -12,10 +12,13 @@ import {
   TrendingUp,
   ChevronRight
 } from 'lucide-react';
+import { CustomAlert } from './CustomAlert'; 
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
@@ -36,6 +39,15 @@ const Sidebar = () => {
   return (
     // 1. Changed background to a rich Slate/Black instead of full Orange
     <div className="w-80 h-screen bg-[#0f172a] text-white flex flex-col fixed left-0 top-0 z-40 border-r border-gray-800">
+
+      {showConfirm && (
+        <CustomAlert 
+          type="confirm"
+          message="Are you sure you want to log out from the System?"
+          onClose={() => setShowConfirm(false)}
+          onConfirm={handleLogout}
+        />
+      )}
       
       {/* Brand Logo */}
       <div className="p-8 flex flex-col items-center text-center">
@@ -77,7 +89,8 @@ const Sidebar = () => {
       {/* Logout Section */}
       <div className="p-4 border-t border-slate-800">
         <button 
-          onClick={handleLogout}
+          type="button"
+          onClick={() => setShowConfirm(true)} 
           className="w-full flex items-center gap-4 px-4 py-3 text-gray-500 hover:text-red-400 transition-colors group"
         >
           <LogOut size={20} className="group-hover:translate-x-1 transition-transform" />
