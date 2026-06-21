@@ -13,6 +13,7 @@ const SupplierManage = lazy(() => import("../pages/SupplierManage"));
 const PurchaseManage = lazy(() => import("../pages/PurchaseManage"));
 const ExpenseManage = lazy(() => import("../pages/ExpenseManage"));
 const SalesManage = lazy(() => import("../pages/SalesManage"));
+const Reports = lazy(() => import("../pages/Reports"));
 
 const Placeholder = ({ name }: { name: string }) => (
   <div className="bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 min-h-[400px] flex items-center justify-center">
@@ -40,7 +41,7 @@ export default function AppRouter() {
             <Route path="/inventory" element={<InventoryManage />} />
             <Route path="/sales" element={<SalesManage />} />
             <Route path="/sales-reps" element={<RepsManage />} />
-            <Route path="/reports" element={<Placeholder name="Reports" />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/expenses" element={<ExpenseManage />} />
           </Route>
 
