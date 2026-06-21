@@ -90,7 +90,7 @@ const InventoryManage = () => {
 
               const name = item.productName || (item as any).itemName || '—';
               const currentStock = item.stockQty !== undefined ? item.stockQty : (item as any).qty || 0;
-              const originalQty = item.originalQty || (item as any).qty || 0;
+              const originalQty = item.originalQty !== undefined ? item.originalQty : currentStock;
               
               // Check if expiring within 2 months
               const expiringSoon = isExpiringSoon(item.expDate);
