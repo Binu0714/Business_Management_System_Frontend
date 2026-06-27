@@ -10,7 +10,8 @@ import {
   LogOut,
   TrendingDown,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  Store
 } from 'lucide-react';
 import { CustomAlert } from './CustomAlert'; 
 
@@ -26,6 +27,7 @@ const Sidebar = () => {
     { name: 'Purchase Management', icon: <ShoppingCart size={20} />, path: '/purchases' },
     { name: 'Inventory Management', icon: <PackageSearch size={20} />, path: '/inventory' },
     { name: 'Sales Management', icon: <TrendingUp size={20} />, path: '/sales' },
+    { name: 'Shop Management', icon: <Store size={20} />, path: '/shops' }, // NEW
     { name: 'Expense Management', icon: <TrendingDown size={20} />, path: '/expenses' },
     { name: 'Sales Reps Management', icon: <Users size={20} />, path: '/sales-reps' },
     { name: 'Reports', icon: <BarChart3 size={20} />, path: '/reports' },
