@@ -7,15 +7,15 @@ import { CustomAlert } from '../components/CustomAlert';
 import type { SaleRecord } from '../types/sales';
 
 const SalesManage = () => {
-  // Get language state from parent MainLayout
   const { lang } = useOutletContext<{ lang: 'en' | 'si' }>();
 
   const [inventory, setInventory] = useState<any[]>([]); 
   const [sales, setSales] = useState<SaleRecord[]>([]);
   
-  // Search state for autocomplete
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false); 
 
   // Active Workspace State
   const [items, setItems] = useState<any[]>([]);
@@ -23,9 +23,7 @@ const SalesManage = () => {
   const [currentItem, setCurrentItem] = useState({ productId: '', productName: '', sellingPrice: 0, itemId: '', qty: 0 });
   const [editId, setEditId] = useState<string | null>(null);
 
-  // Modal State for Invoice View
   const [activeInvoice, setActiveInvoice] = useState<SaleRecord | null>(null);
-
   const [alert, setAlert] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'confirm'; id?: string }>({
     show: false, msg: '', type: 'success'
   });
@@ -37,7 +35,12 @@ const SalesManage = () => {
         api.get('/sales')     
       ]);
       setInventory(invRes.data);
-      setSales(salesRes.data);
+      
+      const sortedSales = salesRes.data.sort((a: any, b: any) => 
+        b.date.localeCompare(a.date)
+      );
+      
+      setSales(sortedSales);
     } catch {
       setAlert({ show: true, msg: "Failed to load database records.", type: 'error' });
     }
@@ -49,6 +52,27 @@ const SalesManage = () => {
     const name = item.productName || item.itemName || '';
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  // Extract unique past shops with their most recent phone numbers from sales history
+  const uniqueShopsList = () => {
+    const shopMap: { [key: string]: { name: string; phone: string } } = {};
+    sales.forEach(sale => {
+      if (!sale.shopName) return;
+      const key = sale.shopName.toLowerCase().trim();
+      if (!shopMap[key]) {
+        shopMap[key] = {
+          name: sale.shopName,
+          phone: sale.shopPhone && sale.shopPhone !== '—' ? sale.shopPhone : ''
+        };
+      }
+    });
+    return Object.values(shopMap);
+  };
+
+  // Filter suggested shops based on what is currently typed
+  const filteredShops = uniqueShopsList().filter(shop => 
+    shop.name.toLowerCase().includes(formData.shopName.toLowerCase())
+  );
 
   const selectProduct = (item: any) => {
     const name = item.productName || item.itemName;
@@ -162,7 +186,7 @@ const SalesManage = () => {
         document.body
       )}
 
-      {/* --- 1. FULL-SCREEN INVOICE VIEW MODAL PORTAL --- */}
+      {/* --- INVOICE VIEW POPUP MODAL PORTAL --- */}
       {activeInvoice && createPortal(
         <div className="fixed inset-0 w-screen h-screen bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-[40px] p-10 w-full max-w-2xl shadow-[0_30px_100px_rgba(0,0,0,0.3)] border border-gray-100 relative animate-in zoom-in-95 duration-300">
@@ -170,7 +194,7 @@ const SalesManage = () => {
             {/* Header */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-6">
               <div>
-                <div className="flex items-center gap-2 text-[#ff5722] font-black italic text-xl">
+                <div className="flex items-center gap-2 text-orange-600 font-black italic text-xl">
                   <FileText size={24} /> BINU PRODUCTS
                 </div>
                 <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Official Sales Invoice</p>
@@ -277,17 +301,51 @@ const SalesManage = () => {
         </div>
         <form className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
+            
+            {/* Shop Name Input (With dynamic dropdown suggestions) */}
+            <div className="relative">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Shop Name *</label>
               <input 
                 type="text" 
-                className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm" 
+                className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#ff5722]/20" 
                 placeholder="Type Shop Name..." 
                 value={formData.shopName} 
-                onChange={e => setFormData({...formData, shopName: e.target.value})} 
+                onFocus={() => setIsShopDropdownOpen(true)}
+                onChange={e => {
+                  setFormData({...formData, shopName: e.target.value});
+                  setIsShopDropdownOpen(true);
+                }}
                 required
               />
+
+              {/* Shop Suggestion Dropdown */}
+              {isShopDropdownOpen && formData.shopName && (
+                <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl max-h-40 overflow-y-auto z-50">
+                  {filteredShops.length > 0 ? (
+                    filteredShops.map(shop => (
+                      <button
+                        key={shop.name}
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            shopName: shop.name,
+                            shopPhone: shop.phone !== '—' ? shop.phone : ''
+                          });
+                          setIsShopDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-5 py-3 hover:bg-orange-50 text-xs font-bold text-slate-700 transition-colors"
+                      >
+                        {shop.name}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-gray-400 font-bold">New Shop (No past records)</div>
+                  )}
+                </div>
+              )}
             </div>
+
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Shop Contact No (Optional)</label>
               <input 

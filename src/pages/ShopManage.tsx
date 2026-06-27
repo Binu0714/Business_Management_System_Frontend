@@ -6,7 +6,7 @@ import { CustomAlert } from '../components/CustomAlert';
 const ShopManage = () => {
   const [sales, setSales] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState(''); // 1. Added Search State
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
   const [selectedShopSales, setSelectedShopSales] = useState<any[]>([]);
   
@@ -72,7 +72,7 @@ const ShopManage = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text"
-                placeholder="Search shops (e.g. 'A')..."
+                placeholder="Search shops by name..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full p-4 pl-12 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-[#ff5722] transition-all"
