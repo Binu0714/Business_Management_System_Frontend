@@ -28,6 +28,19 @@ const SalesManage = () => {
     show: false, msg: '', type: 'success'
   });
 
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [historyDateFilter, setHistoryDateFilter] = useState(''); 
+
+   const filteredSales = sales.filter((sale) => {
+    const matchesSearch = sale.shopName.toLowerCase().includes(historySearch.toLowerCase());
+    const matchesFilter = historyFilter === 'all' || sale.status === historyFilter;
+    
+    const matchesDate = !historyDateFilter || sale.date === historyDateFilter; 
+    
+    return matchesSearch && matchesFilter && matchesDate;
+  });
+
   const loadData = async () => {
     try {
       const [invRes, salesRes] = await Promise.all([
@@ -459,7 +472,57 @@ const SalesManage = () => {
 
       {/* 4. HISTORICAL SALES TABLE */}
       <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
-        <h3 className="text-lg font-bold text-slate-800 p-8 border-b">Sales Registry</h3>
+        
+        {/* Interactive Header */}
+        <div className="p-8 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><FileText className="text-[#ff5722]" size={22} /> Sales Registry</h3>          
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search shops..." 
+                value={historySearch}
+                onChange={e => setHistorySearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ff5722]/20"
+              />
+            </div>
+
+            {/* Date Picker (With Clear Option) */}
+            <div className="relative w-full sm:w-auto">
+              <input 
+                type="date" 
+                value={historyDateFilter}
+                onChange={e => setHistoryDateFilter(e.target.value)}
+                className="w-full sm:w-auto p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-[#ff5722]/20 cursor-pointer"
+              />
+              {historyDateFilter && (
+                <button 
+                  type="button"
+                  onClick={() => setHistoryDateFilter('')}
+                  className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdown */}
+            <select 
+              value={historyFilter}
+              onChange={e => setHistoryFilter(e.target.value)}
+              className="w-full sm:w-auto p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#ff5722]/20 cursor-pointer"
+            >
+              <option value="all">All Payments</option>
+              <option value="paid">Fully Paid (Cash)</option>
+              <option value="unpaid">Credit (Unpaid)</option>
+              <option value="partial">Partial Payment</option>
+            </select>
+          </div>
+        </div>
+
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-[10px] uppercase text-gray-400 font-black tracking-widest">
             <tr>
@@ -472,7 +535,8 @@ const SalesManage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {sales.map((sale) => {
+            {/* FIX: Map over filteredSales instead of sales */}
+            {filteredSales.map((sale) => {
               const isUnpaid = sale.status === 'unpaid';
               const isPartial = sale.status === 'partial';
               return (
@@ -492,16 +556,22 @@ const SalesManage = () => {
                     LKR {sale.outstanding.toLocaleString()}
                   </td>
                   <td className="p-6 text-right flex justify-end gap-2">
-                    {/* View/Invoice Button */}
                     <button onClick={() => setActiveInvoice(sale)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Eye size={16} /></button>
-                    {/* Update Button */}
-                    <button onClick={() => handleUpdateClick(sale)} className="p-2 text-orange-500 hover:bg-orange-100 rounded-lg"><Edit2 size={16} /></button>
-                    {/* Delete Button */}
+                    <button onClick={() => handleUpdateClick(sale)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg"><Edit2 size={16} /></button>
                     <button onClick={() => setAlert({ show: true, msg: "Are you sure you want to delete this sales record?", type: 'confirm', id: sale.id })} className="p-2 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
                   </td>
                 </tr>
               );
             })}
+            
+            {/* Fallback empty state */}
+            {filteredSales.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-10 text-center text-xs text-gray-400 font-bold">
+                  No sales found matching your criteria.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
